@@ -1,57 +1,60 @@
 #!/bin/bash
 
-# Load environment variables from .env (if present)
+
 if [ -f .env ]; then
   export $(cat .env | xargs)
 fi
 
-# Check for required environment variables
+
 if [ -z "$GITHUB_TOKEN" ] || [ -z "$OWNER" ] || [ -z "$REPO" ]; then
   echo "Error: GITHUB_TOKEN, OWNER, and REPO must be set."
   exit 1
 fi
 
-# Variables
+
 BASE_URL="https://api.github.com"
 AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
 
-# Function to fetch all PRs targeting the 'dev' branch
+
 get_prs_to_dev() {
   response=$(curl -s -H "$AUTH_HEADER" \
     -H "Accept: application/vnd.github.v3+json" \
     "$BASE_URL/repos/$OWNER/$REPO/pulls?base=dev&state=all")
 
-  # Check if the response is an error message
-  if echo "$response" | jq -e 'has("message")' > /dev/null; then
-    echo "Error fetching PRs: $(echo "$response" | jq -r '.message')"
+
+  if ! echo "$response" | jq . >/dev/null 2>&1; then
+    echo "Error fetching PRs: Invalid JSON response."
+    echo "$response"  
     exit 1
   fi
 
   echo "$response"
 }
 
-# Function to fetch commit messages for a specific PR
+
 get_commit_messages() {
   local pr_number=$1
   response=$(curl -s -H "$AUTH_HEADER" \
     -H "Accept: application/vnd.github.v3+json" \
     "$BASE_URL/repos/$OWNER/$REPO/pulls/$pr_number/commits")
 
-  # Check if the response is an error message
-  if echo "$response" | jq -e 'has("message")' > /dev/null; then
-    echo "Error fetching commits for PR #$pr_number: $(echo "$response" | jq -r '.message')"
+  
+  if ! echo "$response" | jq . >/dev/null 2>&1; then
+    echo "Error fetching commits for PR #$pr_number: Invalid JSON response."
+    echo "$response"  
     exit 1
   fi
 
   echo "$response"
 }
 
-# Main function to capture and display commit messages
+
 capture_commit_messages() {
   echo "Fetching PRs targeting the 'dev' branch..."
 
-  # Get PRs and iterate through them
+
   prs=$(get_prs_to_dev)
+
   pr_count=$(echo "$prs" | jq '. | length')
 
   if [ "$pr_count" -eq 0 ]; then
@@ -68,11 +71,9 @@ capture_commit_messages() {
     echo -e "\nPR #$pr_number - $pr_title"
     echo "Commit Messages:"
 
-    # Fetch and display commit messages
-    commit_messages=$(get_commit_messages "$pr_number" | jq -r '.[].commit.message')
     
-    # Check if commit_messages is empty or null
-    if [[ -z "$commit_messages" || "$commit_messages" == "null" ]]; then
+    commit_messages=$(get_commit_messages "$pr_number" | jq -r '.[].commit.message')
+    if [ -z "$commit_messages" ]; then
       echo "  No commits found for PR #$pr_number."
     else
       echo "$commit_messages" | sed 's/^/  - /'
@@ -80,5 +81,72 @@ capture_commit_messages() {
   done
 }
 
-# Run the main function
+
 capture_commit_messages
+            
+           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
